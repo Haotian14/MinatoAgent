@@ -21,7 +21,7 @@ h2{font-size:17px;margin:4px 0 15px}footer{margin-top:22px;font-size:12px;color:
 <button id="run">Analyze repository</button>
 <h2 style="margin-top:30px">Answer</h2><div id="answer" aria-live="polite" class="muted">Submit a task to begin.</div></section>
 <aside class="panel"><h2>Execution trace</h2><div id="trace" aria-live="polite" class="muted">Agent activity will appear here.</div></aside></main>
-<footer>Public repositories only · No write tools · Results may contain model errors; verify claims in source.</footer>
+<footer><a href="/review" style="color:#93c5fd">Open code change review →</a><br>Public repositories only · No write tools · Results may contain model errors; verify claims in source.</footer>
 </div><script>
 const run=document.querySelector('#run'),answer=document.querySelector('#answer'),trace=document.querySelector('#trace');
 function log(kind, data){const line=document.createElement('div');line.textContent='['+kind+'] '+data;trace.appendChild(line);trace.scrollTop=trace.scrollHeight}
