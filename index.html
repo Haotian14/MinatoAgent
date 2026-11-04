@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MinatoAgent</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui;background:#0b1020;color:#e5eaf6;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0}.shell{max-width:1040px;margin:0 auto;padding:36px 20px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:32px}.mark{display:grid;place-items:center;width:48px;height:48px;background:#2563eb;border-radius:14px;font-size:24px}
+h1{font-size:27px;letter-spacing:-.04em;margin:0}small,.muted{color:#91a0ba}main{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:18px}
+.panel{border:1px solid #27334e;background:#131c30;border-radius:17px;padding:22px}
+label{display:block;color:#aebcda;font-size:13px;margin:14px 0 8px}input,textarea{width:100%;border:1px solid #344460;border-radius:9px;background:#0c1528;color:#f0f4ff;padding:13px;font:inherit}
+textarea{height:145px;resize:vertical}button{width:100%;background:#3b82f6;border:0;border-radius:9px;padding:13px;color:white;font-weight:700;cursor:pointer;margin-top:14px}button:disabled{opacity:.5;cursor:wait}
+#answer{white-space:pre-wrap;line-height:1.65;min-height:110px;overflow-wrap:anywhere}#trace{font:12px/1.65 ui-monospace,monospace;max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:#b6c7e5}
+.tag{display:inline-block;padding:4px 9px;background:#203b58;color:#93c5fd;border-radius:20px;font-size:11px}
+h2{font-size:17px;margin:4px 0 15px}footer{margin-top:22px;font-size:12px;color:#91a0ba}
+@media(max-width:760px){main{grid-template-columns:1fr}.shell{padding:22px 14px}}
+</style></head><body><div class="shell">
+<header><div class="mark">⚡</div><div><h1>MinatoAgent</h1><small>GitHub Repository Assistant · Read-only MVP</small></div></header>
+<main><section class="panel"><span class="tag">AGENT CONSOLE</span>
+<label for="repo">GitHub repository</label><input id="repo" value="Haotian14/stockportfolio" placeholder="owner/repo">
+<label for="prompt">What should the agent investigate?</label><textarea id="prompt">Summarize this repository's architecture and identify the main entry points. Cite file paths.</textarea>
+<button id="run">Analyze repository</button>
+<h2 style="margin-top:30px">Answer</h2><div id="answer" aria-live="polite" class="muted">Submit a task to begin.</div></section>
+<aside class="panel"><h2>Execution trace</h2><div id="trace" aria-live="polite" class="muted">Agent activity will appear here.</div></aside></main>
+<footer>Public repositories only · No write tools · Results may contain model errors; verify claims in source.</footer>
+</div><script>
+const run=document.querySelector('#run'),answer=document.querySelector('#answer'),trace=document.querySelector('#trace');
+function log(kind, data){const line=document.createElement('div');line.textContent='['+kind+'] '+data;trace.appendChild(line);trace.scrollTop=trace.scrollHeight}
+function dispatch(kind,body){let p;try{p=JSON.parse(body)}catch{return}
+if(kind==='status')log('STEP '+p.step,p.message);
+if(kind==='tool_call')log('TOOL',p.name+' '+p.arguments);
+if(kind==='tool_result')log('RESULT',p.name+': '+p.preview);
+if(kind==='delta'){answer.classList.remove('muted');answer.textContent+=p.text}
+if(kind==='done'){answer.classList.remove('muted');answer.textContent=p.text;log('DONE','Completed')}
+if(kind==='error')log('ERROR',p.message)
+}
+run.addEventListener('click',async()=>{run.disabled=true;answer.textContent='';trace.textContent='';
+try{const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({repository:document.querySelector('#repo').value.trim(),message:document.querySelector('#prompt').value.trim()})});
+if(!response.ok){const body=await response.json();throw new Error(body.detail||response.statusText)}
+const reader=response.body.getReader();const decoder=new TextDecoder();let buffer='';
+while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true}).replace(/\r\n/g,'\n');const blocks=buffer.split('\n\n');buffer=blocks.pop()||'';
+for(const block of blocks){const event=(block.match(/^event: (.+)$/m)||[])[1];const data=(block.match(/^data: (.+)$/m)||[])[1];if(event&&data)dispatch(event,data)}}
+}catch(err){log('ERROR',err.message)}finally{run.disabled=false}});
+</script></body></html>
