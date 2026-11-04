@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MinatoAgent · Diff Review</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0b1020;color:#e5ebf8}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:1080px;margin:40px auto;padding:0 18px}
+a{color:#93c5fd}h1{margin-bottom:4px}.hint{color:#98a9c6}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:#141e32;border:1px solid #30415f;padding:22px;border-radius:14px}
+label{display:block;font-size:13px;color:#aebddd;margin:14px 0 7px}
+input,textarea{width:100%;padding:12px;background:#0a1427;color:white;border:1px solid #3a4c69;border-radius:8px;font:inherit}
+textarea{min-height:130px}button{padding:12px 17px;margin:15px 8px 0 0;border:0;border-radius:8px;color:white;background:#2563eb;cursor:pointer;font-weight:650}
+button:disabled{opacity:.45;cursor:default}.reject{background:#7f2737}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#071020;padding:15px;border-radius:9px;max-height:550px;overflow:auto;font-size:12px;line-height:1.6}
+#status{font-size:13px;color:#93c5fd;margin-top:12px}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+<p><a href="/">← Back to chat</a></p><h1>Code change review</h1>
+<p class="hint">The model proposes a whole-file replacement; the server renders a unified diff. Approval records your decision only. No file is changed on GitHub.</p>
+<div class="grid"><section class="card"><h2>New proposal</h2>
+<label for="repo">Repository</label><input id="repo" value="Haotian14/stockportfolio">
+<label for="path">File path (one file, up to 16 KB)</label><input id="path" placeholder="src/App.tsx">
+<label for="instruction">Requested change</label><textarea id="instruction" placeholder="Explain exactly what should change"></textarea>
+<button id="create">Generate diff</button><div id="status" role="status"></div>
+</section><section class="card"><h2>Review decision</h2>
+<p class="hint">Task ID: <span id="id">—</span></p><p>Status: <strong id="phase">No proposal</strong></p>
+<button id="approve" disabled>Approve proposal</button><button id="reject" class="reject" disabled>Reject proposal</button>
+<p class="hint">Approval is a checkpointed workflow state, not permission to create a PR.</p>
+</section></div><section class="card" style="margin-top:18px"><h2>Unified diff</h2><pre id="diff">No proposal yet.</pre></section>
+</div><script>
+let taskId=null;
+const el=id=>document.getElementById(id);
+function display(task){taskId=task.task_id;el('id').textContent=taskId;el('phase').textContent=task.status;el('diff').textContent=task.diff||'No diff';el('approve').disabled=!task.can_review;el('reject').disabled=!task.can_review;history.replaceState(null,'','#'+taskId)}
+async function request(url,options={}){const response=await fetch(url,options);const data=await response.json();if(!response.ok)throw Error(typeof data.detail==='string'?data.detail:'Request failed');return data}
+el('create').onclick=async()=>{el('create').disabled=true;el('status').textContent='Generating proposal...';
+try{const t=await request('/api/proposals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({repository:el('repo').value.trim(),path:el('path').value.trim(),instruction:el('instruction').value.trim()})});display(t);el('status').textContent='Ready for review'}
+catch(e){el('status').textContent=e.message}finally{el('create').disabled=false}};
+for(const [id,approved] of [['approve',true],['reject',false]])el(id).onclick=async()=>{
+el('approve').disabled=el('reject').disabled=true;
+try{display(await request('/api/proposals/'+encodeURIComponent(taskId)+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approved})}))}
+catch(e){el('status').textContent=e.message}};
+if(location.hash.length>1)request('/api/proposals/'+encodeURIComponent(location.hash.slice(1))).then(display).catch(()=>{});
+</script></body></html>
