@@ -211,3 +211,7 @@ def get_review_proposal(task_id: str):
 def decide_review_proposal(task_id: str, request: DecisionRequest):
     from review_workflow import review_proposal
     return review_proposal(task_id, request)
+
+@app.get("/review")
+async def review_page():
+    return FileResponse(ROOT / "review.html")
