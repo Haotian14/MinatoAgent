@@ -23,7 +23,7 @@ from openai import OpenAI
 from pydantic import BaseModel, Field
 
 REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-PATH_PATTERN = re.compile(r"^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[\\w.\\-/]+$")
+PATH_PATTERN = re.compile(r"^[A-Za-z0-9_./-]+$")
 
 
 def validate_repo(repository: str) -> None:
@@ -32,8 +32,10 @@ def validate_repo(repository: str) -> None:
 
 
 def validate_path(path: str) -> None:
-    if not path or not PATH_PATTERN.fullmatch(path) or "//" in path:
+    if (not path or path.startswith("/") or not PATH_PATTERN.fullmatch(path)
+            or any(segment in (".", "..", "") for segment in path.split("/"))):
         raise ValueError("invalid relative path")
+
 
 DB_PATH = Path(os.getenv("MINATO_CHECKPOINT_DB", "minato_checkpoints.sqlite3"))
 MAX_SOURCE_BYTES = 16_000
