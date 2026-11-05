@@ -155,8 +155,8 @@ def publish_approved(task_id: str, authorization: str | None) -> dict:
                         created = _api(client, "POST", f"/repos/{repository}/pulls",
                                        json={"title": f"MinatoAgent: {state['instruction'][:70]}",
                                              "head": branch, "base": base,
-                                             "body": (f"Approved MinatoAgent proposal {task_id}.\\n\\n"
-                                                      f"File: {path}\\n\\n"
+                                             "body": (f"Approved MinatoAgent proposal {task_id}.\n\n"
+                                                      f"File: {path}\n\n"
                                                       "Automated patch; review and run tests before merging."),
                                              "draft": True})
                         pr_url = created["html_url"]
