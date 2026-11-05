@@ -71,3 +71,13 @@ Visit **/review** to propose a one-file modification and inspect a unified diff.
 **Safety boundary:** An approved proposal remains a review record. No GitHub write, patch execution, or PR creation occurs. A later phase will require authenticated users, branch-based writes, head-SHA validation, and explicit PR confirmation. Limit the app to a local trusted environment: approval endpoints have no login yet.
 
 The review model must return JSON with `updated_content`. Some OpenAI-compatible models may not obey the format; such failures are surfaced as errors.
+
+## Phase 3: publish an approved proposal
+
+Set `GITHUB_TOKEN` with repository Contents and Pull Requests write permissions, and set a **long random** `MINATO_ADMIN_TOKEN`. Keep both in server-side `.env` (never commit it). After generating and approving a proposal in `/review`, enter the admin token and click **Publish draft PR**.
+
+`POST /api/proposals/{task_id}/publish` requires `Authorization: Bearer <MINATO_ADMIN_TOKEN>`. The endpoint verifies the approved checkpoint, checks the original GitHub file content against the proposal, creates a unique `minato/approved-...` branch, commits the approved full-file replacement, and creates a **draft** pull request. It never writes to the default branch or merges the PR.
+
+A SQLite publication journal records each phase and reconciles branch content and existing PRs on retry. A failed request can be retried with the same task ID. The journal is single-process oriented, and the publish API is intended for **trusted local use only** until real user authentication, CSRF protection, per-user authorization, distributed locking, and rate limits are added. A GitHub write token should be scoped to the specific repository.
+
+**Important:** This publishes code for human review; it does not run tests or prove the generated patch is correct. Verify the draft PR before merging.
