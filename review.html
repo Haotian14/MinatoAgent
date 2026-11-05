@@ -22,12 +22,14 @@ button:disabled{opacity:.45;cursor:default}.reject{background:#7f2737}pre{white-
 </section><section class="card"><h2>Review decision</h2>
 <p class="hint">Task ID: <span id="id">—</span></p><p>Status: <strong id="phase">No proposal</strong></p>
 <button id="approve" disabled>Approve proposal</button><button id="reject" class="reject" disabled>Reject proposal</button>
-<p class="hint">Approval is a checkpointed workflow state, not permission to create a PR.</p>
+<p class="hint">Approved proposals can be published to a new branch as a draft PR with an admin token.</p>
+<label for="token">Admin token (never stored by the browser)</label><input id="token" type="password" autocomplete="off" placeholder="MINATO_ADMIN_TOKEN">
+<button id="publish" disabled>Publish draft PR</button><p id="result" class="hint"></p>
 </section></div><section class="card" style="margin-top:18px"><h2>Unified diff</h2><pre id="diff">No proposal yet.</pre></section>
 </div><script>
 let taskId=null;
 const el=id=>document.getElementById(id);
-function display(task){taskId=task.task_id;el('id').textContent=taskId;el('phase').textContent=task.status;el('diff').textContent=task.diff||'No diff';el('approve').disabled=!task.can_review;el('reject').disabled=!task.can_review;history.replaceState(null,'','#'+taskId)}
+function display(task){taskId=task.task_id;el('id').textContent=taskId;el('phase').textContent=task.status;el('diff').textContent=task.diff||'No diff';el('approve').disabled=!task.can_review;el('reject').disabled=!task.can_review;el('publish').disabled=task.status!=='approved';history.replaceState(null,'','#'+taskId)}
 async function request(url,options={}){const response=await fetch(url,options);const data=await response.json();if(!response.ok)throw Error(typeof data.detail==='string'?data.detail:'Request failed');return data}
 el('create').onclick=async()=>{el('create').disabled=true;el('status').textContent='Generating proposal...';
 try{const t=await request('/api/proposals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({repository:el('repo').value.trim(),path:el('path').value.trim(),instruction:el('instruction').value.trim()})});display(t);el('status').textContent='Ready for review'}
@@ -36,5 +38,11 @@ for(const [id,approved] of [['approve',true],['reject',false]])el(id).onclick=as
 el('approve').disabled=el('reject').disabled=true;
 try{display(await request('/api/proposals/'+encodeURIComponent(taskId)+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approved})}))}
 catch(e){el('status').textContent=e.message}};
+el('publish').onclick=async()=>{
+el('publish').disabled=true;el('result').textContent='Publishing...';
+try{const res=await request('/api/proposals/'+encodeURIComponent(taskId)+'/publish',{method:'POST',headers:{'Authorization':'Bearer '+el('token').value}});
+const a=document.createElement('a');a.href=res.pr_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Open draft PR';el('result').replaceChildren(a);
+}catch(e){el('result').textContent=e.message;el('publish').disabled=false}
+};
 if(location.hash.length>1)request('/api/proposals/'+encodeURIComponent(location.hash.slice(1))).then(display).catch(()=>{});
 </script></body></html>
