@@ -6,3 +6,4 @@ __pycache__/
 .DS_Store
 minato_checkpoints.sqlite3
 minato_checkpoints.sqlite3-*
+minato_checkpoints.sqlite3-journal
