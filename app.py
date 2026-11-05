@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import FileResponse, StreamingResponse
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
@@ -215,3 +215,8 @@ def decide_review_proposal(task_id: str, request: DecisionRequest):
 @app.get("/review")
 async def review_page():
     return FileResponse(ROOT / "review.html")
+
+@app.post("/api/proposals/{task_id}/publish")
+def publish_review_proposal(task_id: str, authorization: str | None = Header(default=None)):
+    from publisher import publish_approved
+    return publish_approved(task_id, authorization)
