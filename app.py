@@ -192,3 +192,26 @@ async def chat(request: ChatRequest):
 
     return StreamingResponse(events(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+from review_workflow import ProposalRequest, DecisionRequest
+
+@app.post("/api/proposals")
+def create_review_proposal(request: ProposalRequest):
+    from review_workflow import create_proposal
+    return create_proposal(request)
+
+
+@app.get("/api/proposals/{task_id}")
+def get_review_proposal(task_id: str):
+    from review_workflow import task_snapshot
+    return task_snapshot(task_id)
+
+
+@app.post("/api/proposals/{task_id}/decision")
+def decide_review_proposal(task_id: str, request: DecisionRequest):
+    from review_workflow import review_proposal
+    return review_proposal(task_id, request)
+
+@app.get("/review")
+async def review_page():
+    return FileResponse(ROOT / "review.html")
